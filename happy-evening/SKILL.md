@@ -16,12 +16,24 @@ description: "End-of-day session closer. Triggers: 'добрый вечер', 'h
 - **Пользователь Wiki**: `users/g.deshin`
 - **Lead (ответственный)**: `g.deshin`
 - **Slug страницы недели**: `users/g.deshin/plany-rabot-po-nedeljam/YYYY-WNN`
-- **State-файл**: `~/.claude/projects/-home-gd-projects-gd-yandex-tracker-mcp/skill-state.json`
+- **State-файл**: `/Мерусофт/state/skill-state.json` (Яндекс Диск)
 - **Почтовые папки**: `["INBOX", "Outbox", "Sent", "tracker"]`
 
 ## State-файл
 
-Общий с `good-morning` и `daily-digest`. Читать в начале, записать `last_mail_read` и `last_happy_evening` в конце.
+Общий с `good-morning` и `daily-digest` — файл на Яндекс Диске.
+
+**Чтение** (начало навыка):
+```
+download_disk_file(path="/Мерусофт/state/skill-state.json")
+```
+Если файл не найден — считать все timestamps = `null`.
+
+**Запись** (конец навыка):
+```
+upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
+```
+Обновить `last_mail_read` и `last_happy_evening`, сохранить остальные ключи без изменений.
 
 ## Архитектура: Pipeline с обогащением контекста
 
@@ -40,7 +52,7 @@ description: "End-of-day session closer. Triggers: 'добрый вечер', 'h
 ### Шаг 0 — Подготовка
 
 1. Определить текущую дату, день недели, ISO-неделю.
-2. Прочитать `skill-state.json`.
+2. Скачать state с Диска: `download_disk_file(path="/Мерусофт/state/skill-state.json")`.
 3. Вычислить: `today_start` = сегодня 00:00 MSK, `tomorrow` = завтра 00:00 MSK.
 4. Определить: пятница ли сегодня?
 5. **Проверить локальные накопительные файлы** (`ls tmp/` в рабочем каталоге проекта): матрицы, копилки, черновики (`matrix`, `dopolnenia`, `kp_*`, `ITECO__*`, `draft*`). Учесть в итогах дня: что создано/обновлено сегодня, что требует продолжения на следующий рабочий день.
@@ -188,14 +200,13 @@ update_wiki_section(slug, heading="Хронология", mode="append", content
 
 ### Шаг 8 — Обновить state-файл
 
-```json
-{
+```
+upload_to_disk(path="/Мерусофт/state/skill-state.json", overwrite=true, content={
+  ...прежние_ключи,
   "last_mail_read": "<текущее_время_ISO>",
   "last_happy_evening": "<текущее_время_ISO>"
-}
+})
 ```
-
-Сохранить остальные ключи без изменений.
 
 ## Важные правила
 

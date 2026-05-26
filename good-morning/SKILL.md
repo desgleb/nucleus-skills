@@ -17,12 +17,12 @@ description: "Morning work session opener. Triggers: 'доброе утро', 'g
 - **Lead (ответственный)**: `g.deshin`
 - **Slug индекса**: `users/g.deshin/plany-rabot-po-nedeljam`
 - **Slug страницы недели**: `users/g.deshin/plany-rabot-po-nedeljam/YYYY-WNN` (например `2026-W16`)
-- **State-файл**: `~/.claude/projects/-home-gd-projects-gd-yandex-tracker-mcp/skill-state.json`
+- **State-файл**: `/Мерусофт/state/skill-state.json` (Яндекс Диск)
 - **Почтовые папки**: `["INBOX", "Outbox", "Sent", "tracker"]`
 
 ## State-файл
 
-Все три навыка (`good-morning`, `daily-digest`, `happy-evening`) разделяют один файл состояния:
+Все три навыка (`good-morning`, `daily-digest`, `happy-evening`) разделяют один файл состояния на Яндекс Диске:
 
 ```json
 {
@@ -33,8 +33,18 @@ description: "Morning work session opener. Triggers: 'доброе утро', 'g
 }
 ```
 
-- Читать файл в начале навыка. Если не существует — считать все timestamps = `null` (первый запуск).
-- Каждый навык пишет `last_mail_read` после обработки почты и свой именной ключ.
+**Чтение** (начало навыка):
+```
+download_disk_file(path="/Мерусофт/state/skill-state.json")
+```
+Если файл не найден — считать все timestamps = `null` (первый запуск).
+
+**Запись** (конец навыка):
+```
+upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
+```
+Сохранять все ключи, обновляя только нужные.
+
 - `last_mail_read` используется как `since` для `get_mail_summary`. При `null` — брать пятницу прошлой недели.
 
 ## Архитектура: Pipeline с обогащением контекста
@@ -48,7 +58,7 @@ description: "Morning work session opener. Triggers: 'доброе утро', 'g
 ### Шаг 0 — Подготовка
 
 1. Определить текущую ISO-неделю, даты: понедельник, воскресенье, сегодня.
-2. Прочитать `skill-state.json` (Read tool). Если не существует — первый запуск.
+2. Скачать state с Диска: `download_disk_file(path="/Мерусофт/state/skill-state.json")`. Если не найден — первый запуск.
 3. Вычислить `since` для почты: `last_mail_read` из state-файла, или пятница прошлой недели если `null`.
 4. Определить `tomorrow` = завтра, для верхней границы почтового запроса (`before`).
 5. **Проверить локальные накопительные файлы** предыдущих сессий:
@@ -471,15 +481,13 @@ Q1 — Делать первым:
 
 ### Шаг 10 — Обновить state-файл
 
-Записать в `skill-state.json`:
-```json
-{
+```
+upload_to_disk(path="/Мерусофт/state/skill-state.json", overwrite=true, content={
+  ...прежние_ключи,
   "last_mail_read": "<текущее_время_ISO>",
   "last_good_morning": "<текущее_время_ISO>"
-}
+})
 ```
-
-Сохранить остальные ключи без изменений.
 
 ## Проактивный триггер
 
