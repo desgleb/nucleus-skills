@@ -10,14 +10,14 @@ Work with `.docx` (and `.pptx`) files by unpacking them into XML, making precise
 ## Configuration
 
 **Default Author**: Глеб Дешин | Мерусофт
-**Python**: `~/.claude/venvs/docx/bin/python3` (defusedxml, lxml)
+**Python**: `python` (общий рантайм Nucleus — defusedxml, lxml)
 **Scripts**: `~/.claude/skills/docx/scripts/`
 **Workspace**: `.agent/skills/docx_skill/workspace/`
 **LibreOffice**: `soffice` (for accept_changes)
 
 IMPORTANT: Always run scripts from the scripts directory:
 ```bash
-cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 <script.py> ...
+cd ~/.claude/skills/docx/scripts && python <script.py> ...
 ```
 
 ## Standard Workflow
@@ -28,29 +28,29 @@ cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 <script.py>
 
 2. **Unpack**:
     ```bash
-    cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 unpack.py "/path/to/file.docx" "/abs/path/workspace/temp_doc"
+    cd ~/.claude/skills/docx/scripts && python unpack.py "/path/to/file.docx" "/abs/path/workspace/temp_doc"
     ```
     Автоматически: распаковка ZIP, pretty-print XML, merge adjacent runs, simplify tracked changes.
     Опции: `--merge-runs false`, `--simplify-redlines false`.
 
 3. **Read & Analyze**:
     ```bash
-    cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 extract_text.py "/abs/path/workspace/temp_doc"
+    cd ~/.claude/skills/docx/scripts && python extract_text.py "/abs/path/workspace/temp_doc"
     ```
     Выводит текст с номерами параграфов `[N]`, заголовки как `# / ## / ###`, таблицы в markdown-формате.
 
 4. **Edit** (один или несколько вариантов):
     * **Find & Replace** (сохраняет форматирование, работает с текстом, разбитым на несколько run):
       ```bash
-      cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 find_replace.py "/abs/path/workspace/temp_doc" "старый текст" "новый текст"
+      cd ~/.claude/skills/docx/scripts && python find_replace.py "/abs/path/workspace/temp_doc" "старый текст" "новый текст"
       # Или заменить все вхождения:
-      cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 find_replace.py "/abs/path/workspace/temp_doc" "старый" "новый" --all
+      cd ~/.claude/skills/docx/scripts && python find_replace.py "/abs/path/workspace/temp_doc" "старый" "новый" --all
       ```
     * **Add Comment** (4-файловая система: comments, commentsExtended, commentsIds, commentsExtensible):
       ```bash
-      cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 comment.py "/abs/path/workspace/temp_doc" 0 "Comment text" --author "Глеб Дешин | Мерусофт" --initials "ГД"
+      cd ~/.claude/skills/docx/scripts && python comment.py "/abs/path/workspace/temp_doc" 0 "Comment text" --author "Глеб Дешин | Мерусофт" --initials "ГД"
       # Reply to comment 0:
-      cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 comment.py "/abs/path/workspace/temp_doc" 1 "Reply text" --parent 0
+      cd ~/.claude/skills/docx/scripts && python comment.py "/abs/path/workspace/temp_doc" 1 "Reply text" --parent 0
       ```
       After running, manually add markers to `document.xml` as instructed in the output.
       Markers must be direct children of `<w:p>`, never inside `<w:r>`.
@@ -61,15 +61,15 @@ cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 <script.py>
     * **Metadata** (автор, заголовок):
       ```bash
       # Прочитать:
-      cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 metadata.py "/abs/path/workspace/temp_doc"
+      cd ~/.claude/skills/docx/scripts && python metadata.py "/abs/path/workspace/temp_doc"
       # Обновить:
-      cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 metadata.py "/abs/path/workspace/temp_doc" creator="Глеб Дешин" title="Новый заголовок"
+      cd ~/.claude/skills/docx/scripts && python metadata.py "/abs/path/workspace/temp_doc" creator="Глеб Дешин" title="Новый заголовок"
       ```
 
 5. **Pack & Save** (with validation):
     ```bash
     timestamp=$(date +%Y-%m-%d-%H-%M)
-    cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 pack.py "/abs/path/workspace/temp_doc" "/path/to/output/${timestamp}__file.docx" --original "/path/to/original.docx"
+    cd ~/.claude/skills/docx/scripts && python pack.py "/abs/path/workspace/temp_doc" "/path/to/output/${timestamp}__file.docx" --original "/path/to/original.docx"
     ```
     Автоматически: XSD-валидация, auto-repair (paraId/durableId), tracked changes validation, XML condensing.
     Опции: `--validate false` (пропустить валидацию), `--original` (для сравнения с оригиналом).
@@ -79,14 +79,14 @@ cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 <script.py>
 ### Validate (`office/validate.py`)
 Standalone валидация без упаковки:
 ```bash
-cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 -m office.validate "/abs/path/workspace/temp_doc" --original "/path/to/original.docx" --auto-repair -v
+cd ~/.claude/skills/docx/scripts && python -m office.validate "/abs/path/workspace/temp_doc" --original "/path/to/original.docx" --auto-repair -v
 ```
 Проверяет: XSD schemas, namespaces, unique IDs, file references, content types, whitespace preservation, tracked changes consistency, comment markers.
 
 ### Accept Tracked Changes (`accept_changes.py`)
 Принять все tracked changes через LibreOffice:
 ```bash
-cd ~/.claude/skills/docx/scripts && ~/.claude/venvs/docx/bin/python3 accept_changes.py "/path/to/input.docx" "/path/to/output_clean.docx"
+cd ~/.claude/skills/docx/scripts && python accept_changes.py "/path/to/input.docx" "/path/to/output_clean.docx"
 ```
 
 ### Create DOCX from scratch (`docx-js`)
