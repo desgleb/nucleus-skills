@@ -71,28 +71,30 @@ A user may ask you to create, edit, or analyze the contents of an .xlsx file. Yo
 
 ## Important Requirements
 
-**LibreOffice Required for Formula Recalculation**: You can assume LibreOffice is installed for recalculating formula values using the `scripts/recalc.py` script. The script automatically configures LibreOffice on first run, including in sandboxed environments where Unix sockets are restricted (handled by `scripts/office/soffice.py`)
+**Formula Recalculation — device behavior**: LibreOffice is NOT available on-device. `scripts/recalc.py` detects this and sets the `fullCalcOnLoad` flag in the file instead. This means formula values (and any #VALUE!/#DIV/0! errors) will only be computed when the file is opened in Excel, Google Sheets, or LibreOffice on a desktop. On-device the script returns `status: recalc_deferred` and a formula count — it does NOT compute values or detect formula errors (there is no recalc engine on-device). Write correct formulas and verify references manually; the "zero formula errors" requirement is verified at open-time on a desktop.
 
 ## Reading and analyzing data
 
-### Data analysis with pandas
-For data analysis, visualization, and basic operations, use **pandas** which provides powerful data manipulation capabilities:
+### Data analysis with openpyxl
+pandas is not available on-device. Use **openpyxl** for reading and analyzing data:
 
 ```python
-import pandas as pd
+from openpyxl import load_workbook
 
-# Read Excel
-df = pd.read_excel('file.xlsx')  # Default: first sheet
-all_sheets = pd.read_excel('file.xlsx', sheet_name=None)  # All sheets as dict
+wb = load_workbook('file.xlsx', data_only=True)
+ws = wb.active
 
-# Analyze
-df.head()      # Preview data
-df.info()      # Column info
-df.describe()  # Statistics
+# Preview first rows
+for row in ws.iter_rows(min_row=1, max_row=5, values_only=True):
+    print(row)
 
-# Write Excel
-df.to_excel('output.xlsx', index=False)
+# Column info and basic stats
+col_data = [ws.cell(row=r, column=1).value for r in range(2, ws.max_row+1) if ws.cell(row=r, column=1).value is not None]
+print(f"Rows: {ws.max_row}, Cols: {ws.max_column}")
+print(f"Count: {len(col_data)}, Sum: {sum(v for v in col_data if isinstance(v, (int,float)))}")
 ```
+
+Note: `data_only=True` reads cached formula results. If a formula was never saved with a calculated value, the cell returns `None`.
 
 ## Excel File Workflows
 
@@ -130,7 +132,7 @@ sheet['D20'] = '=AVERAGE(D2:D19)'
 This applies to ALL calculations - totals, percentages, ratios, differences, etc. The spreadsheet should be able to recalculate when source data changes.
 
 ## Common Workflow
-1. **Choose tool**: pandas for data, openpyxl for formulas/formatting
+1. **Choose tool**: openpyxl for all operations (formulas, formatting, data — pandas not available on-device)
 2. **Create/Load**: Create new workbook or load existing file
 3. **Modify**: Add/edit data, formulas, and formatting
 4. **Save**: Write to file
@@ -206,23 +208,21 @@ wb.save('modified.xlsx')
 
 ## Recalculating formulas
 
-Excel files created or modified by openpyxl contain formulas as strings but not calculated values. Use the provided `scripts/recalc.py` script to recalculate formulas:
+Excel files created or modified by openpyxl contain formulas as strings but not calculated values. Use the provided `scripts/recalc.py` script:
 
 ```bash
-python scripts/recalc.py <excel_file> [timeout_seconds]
+python scripts/recalc.py <excel_file>
 ```
 
 Example:
 ```bash
-python scripts/recalc.py output.xlsx 30
+python scripts/recalc.py output.xlsx
 ```
 
-The script:
-- Automatically sets up LibreOffice macro on first run
-- Recalculates all formulas in all sheets
-- Scans ALL cells for Excel errors (#REF!, #DIV/0!, etc.)
-- Returns JSON with detailed error locations and counts
-- Works on both Linux and macOS
+On-device behavior (no LibreOffice):
+- Sets `fullCalcOnLoad=True` in the file — formulas recalculate when the file is opened in Excel/Google Sheets/LibreOffice on a desktop
+- Scans cached cell values for Excel errors (#REF!, #DIV/0!, etc.) and reports them
+- **Does not execute formulas on-device** — computed values appear only after opening on a desktop
 
 ## Formula Verification Checklist
 
@@ -265,8 +265,7 @@ The script returns JSON with error details:
 ## Best Practices
 
 ### Library Selection
-- **pandas**: Best for data analysis, bulk operations, and simple data export
-- **openpyxl**: Best for complex formatting, formulas, and Excel-specific features
+- **openpyxl**: Primary tool — data analysis, formatting, formulas, Excel-specific features (pandas not available on-device)
 
 ### Working with openpyxl
 - Cell indices are 1-based (row=1, column=1 refers to cell A1)
@@ -274,11 +273,6 @@ The script returns JSON with error details:
 - **Warning**: If opened with `data_only=True` and saved, formulas are replaced with values and permanently lost
 - For large files: Use `read_only=True` for reading or `write_only=True` for writing
 - Formulas are preserved but not evaluated - use scripts/recalc.py to update values
-
-### Working with pandas
-- Specify data types to avoid inference issues: `pd.read_excel('file.xlsx', dtype={'id': str})`
-- For large files, read specific columns: `pd.read_excel('file.xlsx', usecols=['A', 'C', 'E'])`
-- Handle dates properly: `pd.read_excel('file.xlsx', parse_dates=['date_column'])`
 
 ## Code Style Guidelines
 **IMPORTANT**: When generating Python code for Excel operations:

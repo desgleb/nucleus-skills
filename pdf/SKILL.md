@@ -101,21 +101,18 @@ with pdfplumber.open("document.pdf") as pdf:
 
 #### Advanced Table Extraction
 ```python
-import pandas as pd
+import pdfplumber
+import openpyxl
 
 with pdfplumber.open("document.pdf") as pdf:
-    all_tables = []
+    wb = openpyxl.Workbook()
+    ws = wb.active
     for page in pdf.pages:
-        tables = page.extract_tables()
-        for table in tables:
-            if table:  # Check if table is not empty
-                df = pd.DataFrame(table[1:], columns=table[0])
-                all_tables.append(df)
-
-# Combine all tables
-if all_tables:
-    combined_df = pd.concat(all_tables, ignore_index=True)
-    combined_df.to_excel("extracted_tables.xlsx", index=False)
+        for table in page.extract_tables():
+            if table:
+                for row in table:
+                    ws.append(row)
+    wb.save("extracted_tables.xlsx")
 ```
 
 ### reportlab - Create PDFs
@@ -186,67 +183,26 @@ squared = Paragraph("x<super>2</super> + y<super>2</super>", styles['Normal'])
 
 For canvas-drawn text (not Paragraph objects), manually adjust font the size and position rather than using Unicode subscripts/superscripts.
 
-## Command-Line Tools
-
-### pdftotext (poppler-utils)
-```bash
-# Extract text
-pdftotext input.pdf output.txt
-
-# Extract text preserving layout
-pdftotext -layout input.pdf output.txt
-
-# Extract specific pages
-pdftotext -f 1 -l 5 input.pdf output.txt  # Pages 1-5
-```
-
-### qpdf
-```bash
-# Merge PDFs
-qpdf --empty --pages file1.pdf file2.pdf -- merged.pdf
-
-# Split pages
-qpdf input.pdf --pages . 1-5 -- pages1-5.pdf
-qpdf input.pdf --pages . 6-10 -- pages6-10.pdf
-
-# Rotate pages
-qpdf input.pdf output.pdf --rotate=+90:1  # Rotate page 1 by 90 degrees
-
-# Remove password
-qpdf --password=mypassword --decrypt encrypted.pdf decrypted.pdf
-```
-
-### pdftk (if available)
-```bash
-# Merge
-pdftk file1.pdf file2.pdf cat output merged.pdf
-
-# Split
-pdftk input.pdf burst
-
-# Rotate
-pdftk input.pdf rotate 1east output rotated.pdf
-```
-
 ## Common Tasks
 
 ### Extract Text from Scanned PDFs
+
+No OCR engine is available on-device. Rasterize pages and read visually:
+
+```bash
+python ~/.claude/skills/pdf/scripts/convert_pdf_to_images.py scanned.pdf /tmp/pages/
+# Then Read each /tmp/pages/page_N.png with vision
+```
+
+Or directly in Python:
 ```python
-# Requires: pip install pytesseract pdf2image
-import pytesseract
-from pdf2image import convert_from_path
+import pypdfium2 as pdfium
 
-# Convert PDF to images
-images = convert_from_path('scanned.pdf')
-
-# OCR each page
-text = ""
-for i, image in enumerate(images):
-    text += f"Page {i+1}:\n"
-    text += pytesseract.image_to_string(image)
-    text += "\n\n"
-
-print(text)
+doc = pdfium.PdfDocument("scanned.pdf")
+for i, page in enumerate(doc):
+    img = page.render(scale=150/72).to_pil()
+    img.save(f"/tmp/scan_page_{i+1}.png")
+# Read each saved image with vision
 ```
 
 ### Add Watermark
@@ -269,12 +225,18 @@ with open("watermarked.pdf", "wb") as output:
 ```
 
 ### Extract Images
-```bash
-# Using pdfimages (poppler-utils)
-pdfimages -j input.pdf output_prefix
 
-# This extracts all images as output_prefix-000.jpg, output_prefix-001.jpg, etc.
+```python
+from pypdf import PdfReader
+
+reader = PdfReader("input.pdf")
+for i, page in enumerate(reader.pages):
+    for j, img_obj in enumerate(page.images):
+        with open(f"/tmp/img_p{i+1}_{j}.png", "wb") as f:
+            f.write(img_obj.data)
 ```
+
+Note: this extracts raster image objects only. Vector graphics (charts from Excel/matplotlib) are not image objects — rasterize the whole page instead.
 
 ### Password Protection
 ```python
@@ -299,16 +261,20 @@ with open("encrypted.pdf", "wb") as output:
 |------|-----------|--------------|
 | Merge PDFs | pypdf | `writer.add_page(page)` |
 | Split PDFs | pypdf | One page per file |
-| Extract text | pdfplumber | `page.extract_text()` |
+| Extract text | pypdfium2 | `page.get_textpage().get_text_range()` |
+| Extract text (script) | extract_text.py | `python .../scripts/extract_text.py doc.pdf` |
+| Extract text (layout) | pdfplumber | `page.extract_text()` |
 | Extract tables | pdfplumber | `page.extract_tables()` |
 | Create PDFs | reportlab | Canvas or Platypus |
-| Command line merge | qpdf | `qpdf --empty --pages ...` |
-| OCR scanned PDFs | pytesseract | Convert to image first |
-| Fill PDF forms | pdf-lib or pypdf (see FORMS.md) | See FORMS.md |
+| Rasterize / visual read | pypdfium2 | `page.render(scale=150/72).to_pil()` |
+| Rasterize all pages | script | `python .../scripts/convert_pdf_to_images.py` |
+| Scanned PDF | pypdfium2 + vision | Rasterize → Read image (no OCR on device) |
+| Extract raster images | pypdf | `page.images[i].data` |
+| Fill PDF forms | pypdf (see FORMS.md) | See FORMS.md |
+| Add annotations/comments | script | `python .../scripts/comment.py` |
 
 ## Next Steps
 
-- For advanced pypdfium2 usage, see REFERENCE.md
-- For JavaScript libraries (pdf-lib), see REFERENCE.md
+- For advanced pypdfium2 usage and encrypted PDF handling, see REFERENCE.md
 - If you need to fill out a PDF form, follow the instructions in FORMS.md
 - For troubleshooting guides, see REFERENCE.md
