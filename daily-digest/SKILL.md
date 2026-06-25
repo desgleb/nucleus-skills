@@ -114,7 +114,7 @@ get_issue(issue_key)
 
 **Rate limit:** не более 5-7 запросов get_issue. Приоритет: Q1 → Q2 → лягушка/слон. Q3/Q4 — только если есть tracker-нотификации.
 
-Если в комментариях есть прямой запрос — прочитать через `get_comments(issue_key)`.
+Если в комментариях есть прямой запрос — прочитать через `manage_comments(operation="list", target={type:"issue", id:issue_key})`.
 
 ### Шаг 3 — GTD-классификация
 

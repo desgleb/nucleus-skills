@@ -32,7 +32,7 @@ These skills are built for the [gd-yandex-tracker-mcp](https://github.com/desgle
 - `list_events` — weekly calendar
 
 **Tracker**
-- `get_issue`, `get_comments` — task details and discussion
+- `get_issue`, `manage_comments` — task details and discussion
 - `search_entity`, `get_entity` — project entities with checklists
 
 **Wiki**

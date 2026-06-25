@@ -134,7 +134,7 @@ get_wiki_page(slug=<текущая_неделя>)
 По каждой задаче, где пользователя @призвали:
 
 ```
-get_comments(issue_key)
+manage_comments(operation="list", target={type:"issue", id:issue_key})
 ```
 
 → Прочитать комментарий. Есть ли прямой запрос? Если да — это задача. Если нет — принять к сведению. Если нужен контекст переписки:
@@ -156,7 +156,7 @@ get_issue(issue_key)
 → Статус, дедлайн, описание. Если есть свежая активность (комментарии в tracker-нотификациях):
 
 ```
-get_comments(issue_key)
+manage_comments(operation="list", target={type:"issue", id:issue_key})
 ```
 
 **Если задача связана с проектом** — прочитать Wiki-страницу проекта для полного контекста:
