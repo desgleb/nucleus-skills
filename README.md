@@ -29,16 +29,16 @@ These skills are built for the [gd-yandex-tracker-mcp](https://github.com/desgle
 - `search_mail` — search by subject/sender
 
 **Calendar (CalDAV)**
-- `list_events` — weekly calendar
+- `manage_event operation="list"` — weekly calendar
 
 **Tracker**
 - `get_issue`, `manage_comments` — task details and discussion
 - `search_entity`, `get_entity` — project entities with checklists
 
 **Wiki**
-- `get_wiki_page`, `create_wiki_page`, `update_wiki_page` — weekly plans
-- `update_wiki_section` — section-level updates for project pages
-- `list_wiki_subpages` — navigation
+- `manage_wiki operation="get"`, `manage_wiki operation="create"`, `manage_wiki operation="update"` — weekly plans
+- `manage_wiki operation="update_section"` — section-level updates for project pages
+- `manage_wiki operation="list_subpages"` — navigation
 
 ## State File
 

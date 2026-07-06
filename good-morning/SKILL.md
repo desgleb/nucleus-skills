@@ -36,13 +36,13 @@ description: "Morning work session opener. Triggers: 'доброе утро', 'g
 
 **Чтение** (начало навыка):
 ```
-download_disk_file(path="/Мерусофт/state/skill-state.json")
+manage_disk(operation="download", path="/Мерусофт/state/skill-state.json")
 ```
 Если файл не найден — считать все timestamps = `null` (первый запуск).
 
 **Запись** (конец навыка):
 ```
-upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
+manage_disk(operation="upload", path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
 ```
 Сохранять все ключи, обновляя только нужные.
 
@@ -59,7 +59,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 ### Шаг 0 — Подготовка
 
 1. Определить текущую ISO-неделю, даты: понедельник, воскресенье, сегодня. Определить **день недели**: если сегодня понедельник (или навык вызван с аргументом `planerka`) — на Шаге 8.6 формируется брифинг для планёрки.
-2. Скачать state с Диска: `download_disk_file(path="/Мерусофт/state/skill-state.json")`. Если не найден — первый запуск.
+2. Скачать state с Диска: `manage_disk(operation="download", path="/Мерусофт/state/skill-state.json")`. Если не найден — первый запуск.
 3. Вычислить `since` для почты: `last_mail_read` из state-файла, или пятница прошлой недели если `null`.
 4. Определить `tomorrow` = завтра, для верхней границы почтового запроса (`before`).
 5. **Проверить локальные накопительные файлы** предыдущих сессий:
@@ -74,7 +74,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 | # | Вызов | API |
 |---|-------|-----|
 | 1 | `get_mail_summary(since=<since>, before=<tomorrow>, folders=["INBOX","Outbox","Sent","tracker"])` | IMAP |
-| 2 | `list_events(start=<понедельник>T00:00:00+03:00, end=<воскресенье>T23:59:59+03:00)` | CalDAV |
+| 2 | `manage_event(operation="list", start=<понедельник>T00:00:00+03:00, end=<воскресенье>T23:59:59+03:00)` | CalDAV |
 
 #### Анализ после Шага 1
 
@@ -110,7 +110,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 ### Шаг 2 — Wiki прошлой недели (1 запрос к Wiki API)
 
 ```
-get_wiki_page(slug=<прошлая_неделя>)
+manage_wiki(operation="get", slug=<прошлая_неделя>)
 ```
 
 #### Анализ после Шага 2
@@ -125,7 +125,7 @@ get_wiki_page(slug=<прошлая_неделя>)
 ### Шаг 3 — Wiki текущей недели (1 запрос к Wiki API)
 
 ```
-get_wiki_page(slug=<текущая_неделя>)
+manage_wiki(operation="get", slug=<текущая_неделя>)
 ```
 
 #### Маршрутизация
@@ -174,7 +174,7 @@ manage_comments(operation="list", target={type:"issue", id:issue_key})
 **Если задача связана с проектом** — прочитать Wiki-страницу проекта для полного контекста:
 
 ```
-get_wiki_page(slug=<slug_проекта>)
+manage_wiki(operation="get", slug=<slug_проекта>)
 ```
 
 → Хронология, коммерция, статусы, решения. Сверить с данными из Tracker и почты. Если информация на Wiki устарела — отметить для обновления на Шаге 8.
@@ -338,9 +338,9 @@ get_entity(entityId=<id>)
 
 ### Шаг 8 — Публикация (после подтверждения)
 
-1. `create_wiki_page` со slug `users/g.deshin/plany-rabot-po-nedeljam/YYYY-WNN`
+1. `manage_wiki operation="create"` со slug `users/g.deshin/plany-rabot-po-nedeljam/YYYY-WNN`
    - В конце страницы: `---\n*Обновлено: YYYY-MM-DD HH:MM MSK*`
-2. Обновить индекс: `get_wiki_page(slug=индекс)` → добавить ссылку → `update_wiki_page`
+2. Обновить индекс: `manage_wiki(operation="get", slug=индекс)` → добавить ссылку → `manage_wiki operation="update"`
 
 **Формат индекса** — группировка по годам и месяцам, новые наверху:
 
@@ -398,7 +398,7 @@ get_entity(entityId=<id>)
 Очевидные обновления (закрытые → `[x]`) — без подтверждения.
 Переклассификация, новые задачи — с подтверждением.
 
-После подтверждения → `update_wiki_page`, обновить `*Обновлено: ...*`.
+После подтверждения → `manage_wiki operation="update"`, обновить `*Обновлено: ...*`.
 
 ### Шаг 8.5 — Актуализация связанных Wiki-страниц (экспресс-схема)
 
@@ -409,7 +409,7 @@ get_entity(entityId=<id>)
 Для каждого проекта, где на Шаге 4 была прочитана Wiki-страница и найдены расхождения:
 
 ```
-update_wiki_section(slug=<slug_проекта>, section=<секция>, content=<новое_содержание>)
+manage_wiki(operation="update_section", slug=<slug_проекта>, section=<секция>, content=<новое_содержание>)
 ```
 
 **Актуализация идёт со сверкой к эталонному шаблону проектных страниц:**
@@ -478,7 +478,7 @@ https://wiki.yandex.ru/users/g.deshin/projects/page-template/
 |---|---|
 | Результаты прошлой недели | Wiki прошлой недели (Шаг 2): закрытые `- [x]`, съеденные лягушки, прогресс слонов + закрытые задачи Tracker и отправленные письма Sent (Шаги 1, 4) |
 | Планы на эту неделю | План текущей недели (Шаг 6/8): главные фокусы Q1/Q2, лягушки, слоны |
-| Встречи недели | Календарь недели (Шаг 1, `list_events`) |
+| Встречи недели | Календарь недели (Шаг 1, `manage_event operation="list"`) |
 
 **Группировка — по клиенту/проекту** (как во всём навыке), не по технологии. Проект = одна строка.
 
@@ -512,7 +512,7 @@ https://wiki.yandex.ru/users/g.deshin/projects/page-template/
 После показа в чате — записать брифинг как раздел на странице недели текущей недели (создана/обновлена на Шаге 8):
 
 ```
-update_wiki_section(slug=<текущая_неделя>, section="🗣 Планёрка (понедельник ДД.ММ)", content=<брифинг>)
+manage_wiki(operation="update_section", slug=<текущая_неделя>, section="🗣 Планёрка (понедельник ДД.ММ)", content=<брифинг>)
 ```
 
 Раздел размещается **вверху** страницы недели, перед Q1 — это входной артефакт недели. Запись — без отдельного подтверждения (брифинг уже показан в чате); финансовые данные не включать.
@@ -554,7 +554,7 @@ Q1 — Делать первым:
 ### Шаг 10 — Обновить state-файл
 
 ```
-upload_to_disk(path="/Мерусофт/state/skill-state.json", overwrite=true, content={
+manage_disk(operation="upload", path="/Мерусофт/state/skill-state.json", overwrite=true, content={
   ...прежние_ключи,
   "last_mail_read": "<текущее_время_ISO>",
   "last_good_morning": "<текущее_время_ISO>"

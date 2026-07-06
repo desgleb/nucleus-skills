@@ -25,13 +25,13 @@ description: "End-of-day session closer. Triggers: 'добрый вечер', 'h
 
 **Чтение** (начало навыка):
 ```
-download_disk_file(path="/Мерусофт/state/skill-state.json")
+manage_disk(operation="download", path="/Мерусофт/state/skill-state.json")
 ```
 Если файл не найден — считать все timestamps = `null`.
 
 **Запись** (конец навыка):
 ```
-upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
+manage_disk(operation="upload", path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
 ```
 Обновить `last_mail_read` и `last_happy_evening`, сохранить остальные ключи без изменений.
 
@@ -52,7 +52,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 ### Шаг 0 — Подготовка
 
 1. Определить текущую дату, день недели, ISO-неделю.
-2. Скачать state с Диска: `download_disk_file(path="/Мерусофт/state/skill-state.json")`.
+2. Скачать state с Диска: `manage_disk(operation="download", path="/Мерусофт/state/skill-state.json")`.
 3. Вычислить: `today_start` = сегодня 00:00 MSK, `tomorrow` = завтра 00:00 MSK.
 4. Определить: пятница ли сегодня?
 5. **Проверить локальные накопительные файлы** (`ls tmp/` в рабочем каталоге проекта): матрицы, копилки, черновики (`matrix`, `dopolnenia`, `kp_*`, `ITECO__*`, `draft*`). Учесть в итогах дня: что создано/обновлено сегодня, что требует продолжения на следующий рабочий день.
@@ -62,7 +62,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 | # | Вызов | API |
 |---|-------|-----|
 | 1 | `get_mail_summary(since=<today_start>, before=<tomorrow>, folders=["INBOX","Outbox","Sent","tracker"])` | IMAP |
-| 2 | `list_events(start=<завтра>T00:00:00+03:00, end=<завтра>T23:59:59+03:00)` | CalDAV |
+| 2 | `manage_event(operation="list", start=<завтра>T00:00:00+03:00, end=<завтра>T23:59:59+03:00)` | CalDAV |
 
 #### Анализ после Шага 1
 
@@ -90,7 +90,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 ### Шаг 2 — Недельный план (1 запрос к Wiki API)
 
 ```
-get_wiki_page(slug=<текущая_неделя>)
+manage_wiki(operation="get", slug=<текущая_неделя>)
 ```
 
 → Сопоставить план с реальностью: что из Q1 закрыто? Лягушка дня съедена? Кусочек слона сделан?
@@ -101,7 +101,7 @@ get_wiki_page(slug=<текущая_неделя>)
 
 1. Прочитать ключевые письма дня (`get_mail`)
 2. Если есть tracker-нотификации — прочитать комментарии (`manage_comments(operation="list", target={type:"issue", id:issue_key})`)
-3. Прочитать Wiki-страницу проекта (`get_wiki_page`) — для сверки и подготовки обновления
+3. Прочитать Wiki-страницу проекта (`manage_wiki operation="get"`) — для сверки и подготовки обновления
 4. **АНАЛИЗ**: что изменилось за день? Что обновить на Wiki?
 
 **Между проектами** — естественная пауза для анализа. Не перегружать API.
@@ -191,7 +191,7 @@ get_wiki_page(slug=<текущая_неделя>)
 
 По каждому проекту с изменениями:
 ```
-update_wiki_section(slug, heading="Хронология", mode="append", content=...)
+manage_wiki(operation="update_section", slug, heading="Хронология", mode="append", content=...)
 ```
 
 Обновить недельный план:
@@ -213,7 +213,7 @@ update_wiki_section(slug, heading="Хронология", mode="append", content
 ### Шаг 8 — Обновить state-файл
 
 ```
-upload_to_disk(path="/Мерусофт/state/skill-state.json", overwrite=true, content={
+manage_disk(operation="upload", path="/Мерусофт/state/skill-state.json", overwrite=true, content={
   ...прежние_ключи,
   "last_mail_read": "<текущее_время_ISO>",
   "last_happy_evening": "<текущее_время_ISO>"

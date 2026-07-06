@@ -25,13 +25,13 @@ description: "Mid-day work digest with GTD next-action focus. Triggers: 'дай�
 
 **Чтение** (начало навыка):
 ```
-download_disk_file(path="/Мерусофт/state/skill-state.json")
+manage_disk(operation="download", path="/Мерусофт/state/skill-state.json")
 ```
 Если файл не найден — считать все timestamps = `null`.
 
 **Запись** (конец навыка):
 ```
-upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
+manage_disk(operation="upload", path="/Мерусофт/state/skill-state.json", content=<json>, overwrite=true)
 ```
 Обновить `last_mail_read` и `last_digest`, сохранить остальные ключи без изменений.
 
@@ -65,7 +65,7 @@ upload_to_disk(path="/Мерусофт/state/skill-state.json", content=<json>, 
 
 ### Шаг 1 — Подготовка
 
-1. Скачать state с Диска: `download_disk_file(path="/Мерусофт/state/skill-state.json")` → взять `last_mail_read`
+1. Скачать state с Диска: `manage_disk(operation="download", path="/Мерусофт/state/skill-state.json")` → взять `last_mail_read`
 2. Определить текущую ISO-неделю, slug плана
 
 ### Шаг 2 — Сбор данных (3 источника, последовательно)
@@ -99,7 +99,7 @@ get_mail_summary(since=<last_mail_read>, before=<завтра>, folders=["INBOX"
 #### 2b. План недели (Wiki)
 
 ```
-get_wiki_page(slug=<текущая_неделя>)
+manage_wiki(operation="get", slug=<текущая_неделя>)
 ```
 
 Извлечь ВСЁ:
@@ -214,7 +214,7 @@ get_issue(issue_key)
 ### Шаг 5 — Обновить state-файл
 
 ```
-upload_to_disk(path="/Мерусофт/state/skill-state.json", overwrite=true, content={
+manage_disk(operation="upload", path="/Мерусофт/state/skill-state.json", overwrite=true, content={
   ...прежние_ключи,
   "last_mail_read": "<текущее_время_ISO>",
   "last_digest": "<текущее_время_ISO>"
