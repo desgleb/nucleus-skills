@@ -24,9 +24,9 @@ weekly Wiki plan     recommendations       project pages
 These skills are built for the [gd-yandex-tracker-mcp](https://github.com/desgleb/gd-yandex-tracker-mcp) MCP server. They use the following MCP tools:
 
 **Mail (IMAP)**
-- `get_mail_summary` — inbox delta with folder filtering
-- `get_mail` — full message content by UID
-- `search_mail` — search by subject/sender
+- `manage_mail(operation="summary")` — inbox delta with folder filtering
+- `manage_mail(operation="get")` — full message content by UID
+- `manage_mail(operation="search")` — search by subject/sender
 
 **Calendar (CalDAV)**
 - `manage_event operation="list"` — weekly calendar
